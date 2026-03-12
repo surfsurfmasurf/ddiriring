@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>재미있는 화학 탐험: 원자와 분자</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Chosen Palette: Light Educational Palette (Slate-50 background, Teal-600 primary, Amber-400 accent, Red/Blue/Gray for particles) -->
+    <!-- Application Structure Plan: 
+         1. Hero Section: Welcome message to engage middle school students.
+         2. Concepts (원자 & 분자): Clear, side-by-side text/visual explanation.
+         3. Interactive Atom Builder (원자 만들기): A Canvas-based interactive simulation where users add protons, neutrons, and electrons to see how elements change.
+         4. Molecule Game (분자 조합 게임): A gamified HTML/CSS section to combine atoms into molecules (H2O, CO2).
+         5. Quiz (확인 퀴즈): To test understanding of the material.
+         This structure provides a smooth flow from concept introduction -> interactive learning -> gamified application -> assessment. 
+    -->
+    <!-- Visualization & Content Choices: 
+         - Atom Builder -> Goal: Understand atomic structure -> Method: HTML5 Canvas (NO SVG). Allows dynamic, animated representation of Bohr model orbits.
+         - Molecule Game -> Goal: Understand chemical bonds/molecules -> Method: Interactive DOM elements (Tailwind CSS shapes) acting as clickable items.
+         - NO SVG graphics used. NO Mermaid JS used. 
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 500px;
+            border-radius: 1rem;
+            overflow: hidden;
+            background-color: #f8fafc;
+            box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+        }
+
+        .particle-btn {
+            transition: transform 0.1s, filter 0.1s;
+        }
+        .particle-btn:active {
+            transform: scale(0.95);
+            filter: brightness(0.9);
+        }
+
+        .atom-circle {
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+            user-select: none;
+        }
+        .atom-circle:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .floating { animation: float 3s ease-in-out infinite; }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .toast-enter { animation: slideIn 0.3s forwards; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-white/90 backdrop-blur-md shadow-sm z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-2 font-black text-xl text-teal-600">
+                    <span class="text-2xl">🧪</span> 화학 탐험대
+                </div>
+                <div class="hidden md:flex space-x-8 font-bold text-sm text-slate-600">
+                    <a href="#intro" class="hover:text-teal-600 transition">소개</a>
+                    <a href="#concept" class="hover:text-teal-600 transition">기본 개념</a>
+                    <a href="index.html" class="text-amber-500 hover:text-amber-600 transition flex items-center gap-1"><span>✨</span>분자식/이온식</a>
+                    <a href="#builder" class="hover:text-teal-600 transition">원자 만들기</a>
+                    <a href="#game" class="hover:text-teal-600 transition">분자 게임</a>
+                    <a href="#quiz" class="hover:text-teal-600 transition">퀴즈</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-16">
+        
+        <!-- 1. Hero / Intro Section -->
+        <section id="intro" class="min-h-[80vh] flex flex-col justify-center items-center text-center px-4 bg-gradient-to-br from-teal-50 to-emerald-100">
+            <div class="max-w-3xl">
+                <h1 class="text-4xl md:text-6xl font-black text-slate-800 mb-6 tracking-tight">
+                    눈에 보이지 않는 <br><span class="text-teal-600">미시 세계</span>로의 초대! ⚛️
+                </h1>
+                <p class="text-lg md:text-xl text-slate-600 mb-8 leading-relaxed font-medium">
+                    우리가 만지는 스마트폰, 마시는 물, 심지어 우리 몸까지!<br>
+                    이 세상 모든 것은 아주 작은 <strong class="text-teal-700">원자</strong>와 <strong class="text-teal-700">분자</strong>로 이루어져 있어요.<br>
+                    중학교 과학 시간에 배우는 화학의 기초를 게임처럼 즐겁게 알아볼까요?
+                </p>
+                <a href="#concept" class="inline-block bg-teal-500 hover:bg-teal-600 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg transition-transform hover:-translate-y-1">
+                    탐험 시작하기 🚀
+                </a>
+            </div>
+        </section>
+
+        <!-- 2. Concept Section -->
+        <section id="concept" class="py-20 px-4 max-w-6xl mx-auto">
+            <div class="mb-12 text-center">
+                <h2 class="text-3xl font-black text-slate-800 mb-4">📚 원자와 분자, 그게 뭔데?</h2>
+                <p class="text-slate-600">세상을 구성하는 가장 작은 레고 블록에 대해 알아봅시다.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- 원자 카드 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition">
+                    <div class="text-5xl mb-4 text-center floating">🟡</div>
+                    <h3 class="text-2xl font-bold text-center text-teal-600 mb-4">원자 (Atom)</h3>
+                    <p class="text-slate-700 leading-relaxed mb-4">
+                        물질을 이루는 <strong class="bg-amber-100 px-1 rounded">가장 작은 기본 입자</strong>입니다. 
+                        더 이상 쪼개질 수 없는 아주 작은 알갱이죠. (마치 레고 블록 한 칸처럼요!)
+                    </p>
+                    <ul class="space-y-2 text-sm text-slate-600 bg-slate-50 p-4 rounded-lg">
+                        <li><span class="text-red-500 font-bold">➕ 양성자:</span> (+) 전하를 띠며 중심에 있어요.</li>
+                        <li><span class="text-gray-500 font-bold">⏺ 중성자:</span> 전하가 없고 중심에 같이 있어요.</li>
+                        <li><span class="text-blue-500 font-bold">➖ 전자:</span> (-) 전하를 띠며 핵 주위를 빙글빙글 돌아요.</li>
+                    </ul>
+                </div>
+
+                <!-- 분자 카드 -->
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition">
+                    <div class="text-5xl mb-4 text-center floating" style="animation-delay: 1.5s;">🟡-🔴-🟡</div>
+                    <h3 class="text-2xl font-bold text-center text-rose-500 mb-4">분자 (Molecule)</h3>
+                    <p class="text-slate-700 leading-relaxed mb-4">
+                        원자들이 뭉쳐서 만들어진 <strong class="bg-rose-100 px-1 rounded">물질의 성질을 가지는 가장 작은 입자</strong>입니다. 
+                        원자들이 어떻게 결합하느냐에 따라 물, 산소, 이산화탄소 등 완전 다른 물질이 된답니다.
+                    </p>
+                    <div class="text-sm text-slate-600 bg-slate-50 p-4 rounded-lg italic">
+                        "수소 원자 2개와 산소 원자 1개가 만나면, 우리가 마시는 '물(H₂O)' 분자가 완성돼요!"
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 text-center">
+                <a href="index.html" class="inline-flex items-center gap-2 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-bold text-lg py-4 px-8 rounded-2xl shadow-lg transition-transform hover:-translate-y-1">
+                    <span>📖</span> 분자식과 이온식, 어떻게 쓰는 걸까? (심화학습) <span>👉</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- 3. Interactive Atom Builder -->
+        <section id="builder" class="py-20 px-4 bg-slate-100">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl font-black text-slate-800 mb-4">🛠️ 나만의 원자 만들기 시뮬레이터</h2>
+                    <p class="text-slate-600">입자들을 추가해서 원자가 어떻게 변하는지 관찰해 보세요.</p>
+                </div>
+
+                <div class="flex flex-col lg:flex-row gap-8 items-center bg-white p-6 rounded-3xl shadow-lg border border-slate-200">
+                    
+                    <!-- Canvas Container -->
+                    <div class="w-full lg:w-2/3">
+                        <div class="chart-container border-2 border-slate-100" id="canvas-wrapper">
+                            <canvas id="atomCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="w-full lg:w-1/3 flex flex-col gap-6">
+                        <div class="bg-slate-800 text-white p-6 rounded-2xl text-center shadow-inner">
+                            <h3 class="text-sm text-slate-400 font-bold mb-1">현재 원소</h3>
+                            <div id="element-name" class="text-4xl font-black text-teal-400 mb-2 tracking-widest">수소 (H)</div>
+                            <div id="element-desc" class="text-sm text-slate-300 h-10">우주에서 가장 가볍고 흔한 원소입니다.</div>
+                            <div class="mt-4 flex justify-around text-xs font-mono bg-slate-900 py-2 rounded-lg">
+                                <div>전하량: <span id="charge-val" class="text-white">0</span></div>
+                                <div>질량수: <span id="mass-val" class="text-white">1</span></div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between bg-red-50 p-3 rounded-xl border border-red-100">
+                                <span class="font-bold text-red-700">➕ 양성자 (p⁺)</span>
+                                <div class="flex items-center gap-3">
+                                    <button onclick="updateParticle('p', -1)" class="particle-btn w-8 h-8 rounded-full bg-red-200 text-red-800 font-black">-</button>
+                                    <span id="p-count" class="w-6 text-center font-bold">1</span>
+                                    <button onclick="updateParticle('p', 1)" class="particle-btn w-8 h-8 rounded-full bg-red-500 text-white font-black">+</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between bg-gray-100 p-3 rounded-xl border border-gray-200">
+                                <span class="font-bold text-gray-700">⏺ 중성자 (n⁰)</span>
+                                <div class="flex items-center gap-3">
+                                    <button onclick="updateParticle('n', -1)" class="particle-btn w-8 h-8 rounded-full bg-gray-300 text-gray-800 font-black">-</button>
+                                    <span id="n-count" class="w-6 text-center font-bold">0</span>
+                                    <button onclick="updateParticle('n', 1)" class="particle-btn w-8 h-8 rounded-full bg-gray-500 text-white font-black">+</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between bg-blue-50 p-3 rounded-xl border border-blue-100">
+                                <span class="font-bold text-blue-700">➖ 전자 (e⁻)</span>
+                                <div class="flex items-center gap-3">
+                                    <button onclick="updateParticle('e', -1)" class="particle-btn w-8 h-8 rounded-full bg-blue-200 text-blue-800 font-black">-</button>
+                                    <span id="e-count" class="w-6 text-center font-bold">1</span>
+                                    <button onclick="updateParticle('e', 1)" class="particle-btn w-8 h-8 rounded-full bg-blue-500 text-white font-black">+</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button onclick="resetAtom()" class="mt-2 text-sm text-slate-500 hover:text-slate-800 underline decoration-slate-300 underline-offset-4">처음으로 초기화</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Molecule Maker Game -->
+        <section id="game" class="py-20 px-4 max-w-6xl mx-auto">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-black text-slate-800 mb-4">🎮 미니 게임: 화학 실험실</h2>
+                <p class="text-slate-600">주어진 원자들을 클릭해서 목표 분자를 완성해보세요!</p>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 md:p-10 shadow-lg border border-slate-200">
+                
+                <div class="flex flex-col md:flex-row gap-8">
+                    <!-- Target Area -->
+                    <div class="w-full md:w-1/3 bg-amber-50 rounded-2xl p-6 text-center border-2 border-amber-200 border-dashed">
+                        <h3 class="text-amber-800 font-black mb-2">오늘의 미션</h3>
+                        <div id="mission-title" class="text-2xl font-black text-slate-800 mb-4">물 (H₂O)</div>
+                        <p id="mission-desc" class="text-sm text-slate-600 mb-6">생명체에게 꼭 필요한 물질이에요. 수소(H) 2개와 산소(O) 1개가 필요해요.</p>
+                        
+                        <!-- Cauldron / Selection Area -->
+                        <div class="bg-white p-4 rounded-xl min-h-[120px] shadow-inner flex items-center justify-center flex-wrap gap-2" id="cauldron">
+                            <span class="text-slate-400 text-sm">여기에 원자가 모입니다</span>
+                        </div>
+                        
+                        <div class="flex gap-2 mt-4">
+                            <button onclick="clearCauldron()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg transition">비우기</button>
+                            <button onclick="checkMolecule()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg transition shadow-md">합성하기!</button>
+                        </div>
+                    </div>
+
+                    <!-- Ingredients Area -->
+                    <div class="w-full md:w-2/3">
+                        <h3 class="text-slate-600 font-bold mb-4">🔬 재료 원자 (클릭해서 추가하세요)</h3>
+                        <div class="grid grid-cols-3 sm:grid-cols-4 gap-4" id="ingredients">
+                            <!-- Generated by JS -->
+                        </div>
+                        
+                        <div id="game-feedback" class="mt-8 p-4 rounded-xl hidden text-center font-bold text-lg">
+                            <!-- Feedback messages -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Quiz Section -->
+        <section id="quiz" class="py-20 px-4 bg-slate-800 text-white">
+            <div class="max-w-3xl mx-auto">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl font-black text-teal-400 mb-4">🏆 실력 확인 퀴즈</h2>
+                    <p class="text-slate-300">지금까지 배운 내용을 퀴즈로 복습해 볼까요?</p>
+                </div>
+
+                <div class="bg-slate-700 p-6 md:p-8 rounded-2xl shadow-xl" id="quiz-container">
+                    <div class="text-sm text-teal-400 font-bold mb-2">문제 <span id="q-num">1</span>/3</div>
+                    <h3 id="question-text" class="text-xl md:text-2xl font-bold mb-6">물질을 구성하는 기본 입자로, 더 이상 쪼개지지 않는 것은 무엇일까요?</h3>
+                    
+                    <div class="space-y-3" id="options-container">
+                        <!-- Options generated by JS -->
+                    </div>
+                    
+                    <div id="quiz-explanation" class="mt-6 p-4 bg-slate-800 rounded-lg hidden border-l-4 border-teal-500">
+                        <p class="text-slate-300 text-sm" id="explanation-text"></p>
+                        <button onclick="nextQuestion()" class="mt-4 bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-6 rounded-lg transition w-full">다음 문제</button>
+                    </div>
+                </div>
+                
+                <div id="quiz-result" class="bg-slate-700 p-8 rounded-2xl shadow-xl text-center hidden">
+                    <h3 class="text-3xl font-black text-amber-400 mb-4">🎉 퀴즈 완료!</h3>
+                    <p class="text-xl mb-6">당신의 점수는 <strong id="score-text" class="text-white"></strong> 입니다!</p>
+                    <button onclick="startQuiz()" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition">다시 도전하기</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="bg-slate-900 text-slate-400 text-center py-8">
+            <p class="text-sm">중학교 2학년 과학 - 물질의 구성 (원자와 분자) 단원 연계 학습용 웹앱</p>
+            <p class="text-xs mt-2">Designed for educational purposes.</p>
+        </footer>
+
+    </main>
+
+    <!-- Global Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <script>
+        /* =========================================
+           1. INTERACTIVE ATOM BUILDER LOGIC (Canvas)
+           ========================================= */
+        const canvas = document.getElementById('atomCanvas');
+        const ctx = canvas.getContext('2d');
+        const wrapper = document.getElementById('canvas-wrapper');
+
+        // Atom State
+        let atomState = {
+            p: 1, // protons
+            n: 0, // neutrons
+            e: 1  // electrons
+        };
+
+        // Periodic Table Data (First 10 Elements for simplicity)
+        const elementsInfo = [
+            { symbol: "?", name: "알 수 없음", desc: "양성자가 없는 물질은 없어요!" },
+            { symbol: "H", name: "수소", desc: "우주에서 가장 가볍고 흔한 원소입니다." },
+            { symbol: "He", name: "헬륨", desc: "풍선을 공중에 띄우는 가벼운 기체예요." },
+            { symbol: "Li", name: "리튬", desc: "스마트폰 배터리에 주로 쓰이는 금속입니다." },
+            { symbol: "Be", name: "베릴륨", desc: "우주선 부품으로 쓰이는 단단한 금속이에요." },
+            { symbol: "B", name: "붕소", desc: "유리를 튼튼하게 만들 때 사용해요." },
+            { symbol: "C", name: "탄소", desc: "흑연, 다이아몬드, 그리고 생명체의 기본 뼈대입니다." },
+            { symbol: "N", name: "질소", desc: "지구 공기의 78%를 차지하는 기체예요." },
+            { symbol: "O", name: "산소", desc: "우리가 숨 쉬는 데 꼭 필요한 기체입니다." },
+            { symbol: "F", name: "플루오린", desc: "치약에 들어가는 불소의 진짜 이름이에요." },
+            { symbol: "Ne", name: "네온", desc: "밤거리를 빛내는 네온사인의 주인공입니다." }
+        ];
+
+        let animationId;
+        let time = 0;
+
+        function resizeCanvas() {
+            canvas.width = wrapper.clientWidth;
+            canvas.height = wrapper.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function updateAtomUI() {
+            document.getElementById('p-count').innerText = atomState.p;
+            document.getElementById('n-count').innerText = atomState.n;
+            document.getElementById('e-count').innerText = atomState.e;
+
+            // Update Element Info based on Protons (Atomic Number)
+            const elIndex = Math.min(Math.max(atomState.p, 0), 10);
+            const elInfo = elementsInfo[elIndex];
+            
+            // Check charge (Ion)
+            let charge = atomState.p - atomState.e;
+            let chargeStr = charge === 0 ? "0 (중성)" : (charge > 0 ? `+${charge} (양이온)` : `${charge} (음이온)`);
+            if (atomState.p === 0) chargeStr = "-";
+
+            // Check mass
+            let mass = atomState.p + atomState.n;
+
+            document.getElementById('element-name').innerText = atomState.p > 0 ? `${elInfo.name} (${elInfo.symbol})` : "입자 조각";
+            document.getElementById('element-name').className = atomState.p > 0 ? "text-4xl font-black text-teal-400 mb-2 tracking-widest" : "text-4xl font-black text-gray-400 mb-2";
+            document.getElementById('element-desc').innerText = elInfo.desc;
+            document.getElementById('charge-val').innerText = chargeStr;
+            document.getElementById('mass-val').innerText = mass;
+
+            // Highlight Ion status
+            document.getElementById('charge-val').className = charge === 0 ? "text-green-400" : (charge > 0 ? "text-red-400" : "text-blue-400");
+        }
+
+        function updateParticle(type, change) {
+            if (atomState[type] + change >= 0 && atomState[type] + change <= 10) {
+                atomState[type] += change;
+                updateAtomUI();
+            } else {
+                showToast("최대 10개까지만 추가할 수 있어요!", "warning");
+            }
+        }
+
+        function resetAtom() {
+            atomState = { p: 1, n: 0, e: 1 };
+            updateAtomUI();
+        }
+
+        function drawAtom() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            // Draw Orbits (Bohr Model)
+            ctx.strokeStyle = '#e2e8f0'; // slate-200
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            
+            const orbits = [70, 130]; // Radii for n=1, n=2
+            
+            // Calculate how many electrons in each shell
+            let shell1E = Math.min(atomState.e, 2);
+            let shell2E = Math.max(0, atomState.e - 2);
+
+            for (let i = 0; i < (shell2E > 0 ? 2 : (shell1E > 0 ? 1 : 0)); i++) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, orbits[i], 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]); // Reset
+
+            // Draw Nucleus (Cluster of Protons and Neutrons)
+            const nucleusRadius = 20;
+            const totalNucleons = atomState.p + atomState.n;
+            
+            // Simple random-like fixed positioning for nucleus particles based on count
+            let drawnP = 0;
+            let drawnN = 0;
+            
+            for (let i = 0; i < totalNucleons; i++) {
+                // Determine if we draw P or N next to mix them up visually
+                let isProton = false;
+                if (drawnP < atomState.p && drawnN < atomState.n) {
+                    isProton = i % 2 === 0;
+                } else if (drawnP < atomState.p) {
+                    isProton = true;
+                }
+                
+                // Position logic (spiral/cluster approximation)
+                const angle = i * 2.4; // Golden angle approx
+                const r = Math.sqrt(i) * 5; 
+                const nx = cx + r * Math.cos(angle);
+                const ny = cy + r * Math.sin(angle);
+
+                ctx.beginPath();
+                ctx.arc(nx, ny, 6, 0, Math.PI * 2);
+                
+                if (isProton) {
+                    ctx.fillStyle = '#ef4444'; // red-500
+                    ctx.fill();
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '8px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('+', nx, ny);
+                    drawnP++;
+                } else {
+                    ctx.fillStyle = '#9ca3af'; // gray-400
+                    ctx.fill();
+                    drawnN++;
+                }
+            }
+
+            // Draw Electrons (Animating)
+            time += 0.02;
+            
+            const drawElectron = (shellIndex, eIndex, totalInShell) => {
+                const radius = orbits[shellIndex];
+                // Offset angle based on index so they space out
+                const angle = time * (shellIndex === 0 ? 1.5 : 1) + (Math.PI * 2 / totalInShell) * eIndex;
+                const ex = cx + radius * Math.cos(angle);
+                const ey = cy + radius * Math.sin(angle);
+
+                ctx.beginPath();
+                ctx.arc(ex, ey, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#3b82f6'; // blue-500
+                ctx.fill();
+                
+                // Glow effect
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#60a5fa';
+                ctx.fill();
+                ctx.shadowBlur = 0; // reset
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '8px Arial';
+                ctx.fillText('-', ex, ey);
+            };
+
+            for(let i=0; i<shell1E; i++) drawElectron(0, i, shell1E);
+            for(let i=0; i<shell2E; i++) drawElectron(1, i, shell2E);
+
+            animationId = requestAnimationFrame(drawAtom);
+        }
+
+        // Init Atom Builder
+        updateAtomUI();
+        drawAtom();
+
+
+        /* =========================================
+           2. MOLECULE MAKER GAME LOGIC
+           ========================================= */
+        const missions = [
+            { id: "water", name: "물 (H₂O)", desc: "생명체에게 꼭 필요한 물질. 수소(H) 2개, 산소(O) 1개", target: { 'H': 2, 'O': 1 } },
+            { id: "co2", name: "이산화탄소 (CO₂)", desc: "우리가 숨을 내쉴 때 나오는 기체. 탄소(C) 1개, 산소(O) 2개", target: { 'C': 1, 'O': 2 } },
+            { id: "o2", name: "산소 (O₂)", desc: "불을 피우거나 숨을 쉴 때 필요해요. 산소(O) 2개", target: { 'O': 2 } }
+        ];
+        let currentMissionIndex = 0;
+        let cauldronContent = [];
+
+        const availableAtoms = [
+            { sym: 'H', bg: 'bg-slate-100', text: 'text-slate-800' },
+            { sym: 'O', bg: 'bg-red-500', text: 'text-white' },
+            { sym: 'C', bg: 'bg-slate-800', text: 'text-white' },
+            { sym: 'N', bg: 'bg-blue-400', text: 'text-white' }
+        ];
+
+        function initMoleculeGame() {
+            const ingContainer = document.getElementById('ingredients');
+            ingContainer.innerHTML = '';
+            
+            availableAtoms.forEach(atom => {
+                const btn = document.createElement('div');
+                btn.className = `${atom.bg} ${atom.text} atom-circle w-16 h-16 text-2xl mx-auto`;
+                btn.innerText = atom.sym;
+                btn.onclick = () => addAtomToCauldron(atom.sym, atom.bg, atom.text);
+                
+                const wrapper = document.createElement('div');
+                wrapper.className = 'text-center';
+                wrapper.appendChild(btn);
+                wrapper.innerHTML += `<div class="mt-2 font-bold text-slate-500 text-sm">${atom.sym}</div>`;
+                ingContainer.appendChild(wrapper);
+            });
+            loadMission();
+        }
+
+        function loadMission() {
+            const m = missions[currentMissionIndex];
+            document.getElementById('mission-title').innerText = m.name;
+            document.getElementById('mission-desc').innerText = m.desc;
+            clearCauldron();
+            document.getElementById('game-feedback').classList.add('hidden');
+        }
+
+        function addAtomToCauldron(sym, bg, text) {
+            if (cauldronContent.length >= 5) {
+                showToast("가마솥이 가득 찼어요!", "warning");
+                return;
+            }
+            cauldronContent.push(sym);
+            renderCauldron();
+        }
+
+        function renderCauldron() {
+            const container = document.getElementById('cauldron');
+            if (cauldronContent.length === 0) {
+                container.innerHTML = '<span class="text-slate-400 text-sm">여기에 원자가 모입니다</span>';
+                return;
+            }
+            container.innerHTML = '';
+            cauldronContent.forEach((sym, index) => {
+                const atomConfig = availableAtoms.find(a => a.sym === sym);
+                const el = document.createElement('div');
+                el.className = `${atomConfig.bg} ${atomConfig.text} w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-sm cursor-pointer animate-[popIn_0.2s_ease-out]`;
+                el.innerText = sym;
+                el.onclick = () => {
+                    cauldronContent.splice(index, 1);
+                    renderCauldron();
+                };
+                container.appendChild(el);
+            });
+        }
+
+        function clearCauldron() {
+            cauldronContent = [];
+            renderCauldron();
+        }
+
+        function checkMolecule() {
+            if (cauldronContent.length === 0) return;
+
+            const target = missions[currentMissionIndex].target;
+            const currentCounts = {};
+            cauldronContent.forEach(sym => {
+                currentCounts[sym] = (currentCounts[sym] || 0) + 1;
+            });
+
+            let isCorrect = true;
+            
+            // Check if every target requirement is met exactly
+            for (const sym in target) {
+                if (currentCounts[sym] !== target[sym]) {
+                    isCorrect = false;
+                    break;
+                }
+            }
+            // Check if there are extra wrong elements
+            for (const sym in currentCounts) {
+                if (!target[sym] || currentCounts[sym] !== target[sym]) {
+                    isCorrect = false;
+                    break;
+                }
+            }
+
+            const feedbackEl = document.getElementById('game-feedback');
+            feedbackEl.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+
+            if (isCorrect) {
+                feedbackEl.classList.add('bg-green-100', 'text-green-700');
+                feedbackEl.innerHTML = `대성공! 🎉 <strong>${missions[currentMissionIndex].name}</strong> 분자를 완성했어요!`;
+                
+                // Next mission logic
+                setTimeout(() => {
+                    currentMissionIndex++;
+                    if (currentMissionIndex < missions.length) {
+                        loadMission();
+                        showToast("다음 미션으로 이동합니다!", "success");
+                    } else {
+                        feedbackEl.innerHTML = `🏆 모든 미션을 완료했습니다! 당신은 꼬마 화학자!`;
+                        currentMissionIndex = 0; // reset for replay
+                    }
+                }, 2000);
+            } else {
+                feedbackEl.classList.add('bg-red-100', 'text-red-700');
+                feedbackEl.innerHTML = `음... 이것은 우리가 찾던 물질이 아니네요. 비율을 다시 확인해보세요! 😅`;
+            }
+        }
+
+        // Init Game
+        initMoleculeGame();
+
+
+        /* =========================================
+           3. QUIZ LOGIC
+           ========================================= */
+        const quizData = [
+            {
+                q: "물질을 이루는 가장 작은 기본 입자로, 더 이상 쪼개지지 않는 것은 무엇일까요?",
+                options: ["원자", "분자", "세포", "먼지"],
+                ans: 0,
+                exp: "정답! 원자는 물질을 구성하는 가장 작은 입자입니다."
+            },
+            {
+                q: "원자핵을 이루고 있는 두 가지 입자는 무엇인가요?",
+                options: ["전자와 양성자", "양성자와 중성자", "중성자와 전자", "분자와 원자"],
+                ans: 1,
+                exp: "정답! 중심에 있는 원자핵은 양(+전하)을 띠는 양성자와 전하가 없는 중성자로 이루어져 있어요."
+            },
+            {
+                q: "물질의 '성질'을 가지는 가장 작은 단위는 무엇일까요?",
+                options: ["양성자", "전자", "원자", "분자"],
+                ans: 3,
+                exp: "정답! 원자가 모여서 고유한 성질을 가지게 된 상태를 '분자'라고 부릅니다. 수소 원자와 산소 원자가 결합해야 비로소 '물' 분자의 성질을 가져요."
+            }
+        ];
+
+        let currentQuizIndex = 0;
+        let score = 0;
+
+        function startQuiz() {
+            currentQuizIndex = 0;
+            score = 0;
+            document.getElementById('quiz-result').classList.add('hidden');
+            document.getElementById('quiz-container').classList.remove('hidden');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            document.getElementById('quiz-explanation').classList.add('hidden');
+            const q = quizData[currentQuizIndex];
+            document.getElementById('q-num').innerText = currentQuizIndex + 1;
+            document.getElementById('question-text').innerText = q.q;
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 rounded-xl bg-slate-600 hover:bg-teal-600 text-white font-medium transition border border-slate-500 focus:outline-none";
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(index, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex, btnElement) {
+            const q = quizData[currentQuizIndex];
+            // Disable all buttons
+            const buttons = document.getElementById('options-container').querySelectorAll('button');
+            buttons.forEach(b => {
+                b.onclick = null;
+                b.classList.remove('hover:bg-teal-600');
+            });
+
+            if (selectedIndex === q.ans) {
+                btnElement.classList.replace('bg-slate-600', 'bg-green-500');
+                score++;
+            } else {
+                btnElement.classList.replace('bg-slate-600', 'bg-red-500');
+                // Highlight correct
+                buttons[q.ans].classList.replace('bg-slate-600', 'bg-green-500');
+            }
+
+            document.getElementById('explanation-text').innerText = q.exp;
+            document.getElementById('quiz-explanation').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentQuizIndex++;
+            if (currentQuizIndex < quizData.length) {
+                renderQuestion();
+            } else {
+                document.getElementById('quiz-container').classList.add('hidden');
+                document.getElementById('quiz-result').classList.remove('hidden');
+                document.getElementById('score-text').innerText = `${score} / ${quizData.length}`;
+            }
+        }
+
+        // Init Quiz
+        startQuiz();
+
+        /* =========================================
+           4. UTILITIES (Toast system)
+           ========================================= */
+        function showToast(message, type="success") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-teal-600' : 'bg-amber-500';
+            
+            toast.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg font-bold text-sm toast-enter flex items-center gap-2`;
+            toast.innerHTML = `<span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                toast.style.transition = 'all 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        // Add basic tailwind animation for elements
+        document.head.insertAdjacentHTML('beforeend', `<style>
+            @keyframes popIn {
+                0% { transform: scale(0); }
+                80% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
+        </style>`);
+
+    </script>
+</body>
+</html>
